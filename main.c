@@ -7,6 +7,8 @@
 #define COLS 4
 
 int gameBoard[ROWS][COLS]; // oyun tahtasini temsil eden 2 boyutlu dizi
+int cardState[ROWS][COLS]={0}; //kartlar baslangicta kapali
+
 
 void initBoard() {
     int cards[ROWS * COLS]; 
@@ -97,12 +99,8 @@ int main(int argc, char *argv[])
     int cardWidth = 100;  // Kart genisligi
     int cardHeight = 100; // Kart yuksekligi
     int padding = 20;     // Kartlar arasi bosluk
-    int startX = 170; // Kartlarin baslangic x koordinati
-    int startY = 70;  // Kartlarin baslangic y koordinati
-
-
-
-
+    int startX = 170; // 800 - (4*100 + 3*20) = 800 - 460 = 170
+    int startY = 70;  // 600 - (4*100 + 3*20) = 600 - 460 = 70
 
     while (isRunning) {
         
@@ -126,8 +124,10 @@ int main(int argc, char *argv[])
 
                 //tiklanan yer gecerli bi satir ve sutunda mi kontrolu
                 if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
-                    printf("Tiklanan kart: (%d, %d) - Deger: %d\n", row, col, gameBoard[row][col]);
-                    //tiklanan kartin satir, sutun ve degerini konsola yazdirir
+                    if(cardState[row][col] == 0) { //kart kapaliysa
+                        cardState[row][col] = 1; //kart acilir
+                        printf("Kart acildi -> Deger: %d\n", gameBoard[row][col]);
+                    }
                 }
             }
 
@@ -139,17 +139,12 @@ int main(int argc, char *argv[])
         SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor() ile belirlenen renk ile doldurur
 
         
-        int cardWidth = 100;  // Kart genisligi
-        int cardHeight = 100; // Kart yuksekligi
-        int padding = 20;     // Kartlar arasi bosluk
-        
         // Ekranin (800x600) tam ortasina hizalamak icin baslangic noktalari secerken
         //4x4 lük sistemimizde 4 kart genisligi ve 3 tane de padding var
         //ekrangenisligi - (4*kartgenisligi + 3*padding) formulunu x'in baslangic noktasini bulmak icin kullaniriz
         //ekran yuksekligi - (4*kartyuksekligi + 3*padding) formulunu y'nin baslangic noktasini bulmak icin kullaniriz
         
-        int startX = 170; // 800 - (4*100 + 3*20) = 800 - 460 = 170
-        int startY = 70;  // 600 - (4*100 + 3*20) = 600 - 460 = 70
+     
 
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
@@ -164,8 +159,14 @@ int main(int argc, char *argv[])
 
                 rect.h = cardHeight;
 
-                
-                SDL_SetRenderDrawColor(renderer, 118,206,242,255); // Kartlar icin rgba rengi belirledim
+
+                if(cardState[r][c] == 0) {
+                    SDL_SetRenderDrawColor(renderer,118, 206, 242, 255); // Kapali kartlar icin acik mavi
+                } 
+
+                else if(cardState[r][c] == 1 || cardState[r][c] == 2) {
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Acik veya eslesmis kartlar icin beyaz
+                }
 
                 SDL_RenderFillRect(renderer, &rect);
                 // Dikdortgenin icini boyayarak ekrana cizdirir
