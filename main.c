@@ -102,7 +102,17 @@ int main(int argc, char *argv[])
     int startX = 170; // 800 - (4*100 + 3*20) = 800 - 460 = 170
     int startY = 70;  // 600 - (4*100 + 3*20) = 600 - 460 = 70
 
-    while (isRunning) {
+
+
+
+    int flippedCount = 0; //kac kartin acik oldugunu sayar
+    int firstRow = -1, firstCol = -1; //acilan ilk kart
+    int secondRow = -1, secondCol = -1; //acilan ikinci kart
+    //su an hafiza tamamen bos, henuz hicbir kart acilmadi
+
+
+    while (isRunning)
+    {
         
         
         while (SDL_PollEvent(&event))
@@ -124,20 +134,35 @@ int main(int argc, char *argv[])
 
                 //tiklanan yer gecerli bi satir ve sutunda mi kontrolu
                 if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
-                    if(cardState[row][col] == 0) { //kart kapaliysa
+
+                    if(cardState[row][col]==0 && flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
                         cardState[row][col] = 1; //kart acilir
-                        printf("Kart acildi -> Deger: %d\n", gameBoard[row][col]);
+                        flippedCount++;
+                    }
+
+                    if(flippedCount == 0) {
+                        //acilan ilk kartin konumunu kaydettim
+                        firstRow = row;
+                        firstCol = col;
+                        flippedCount = 1; //bir kart acildi
+                    } 
+                        
+                    else if(flippedCount == 1) {
+                        //acilan ikinci kartin konumunu kaydettim
+                        secondRow = row;
+                        secondCol = col;
+                        flippedCount = 2; //iki kart acildi
                     }
                 }
             }
 
         } //SDL_PollEvent(&event) ile eventleri kontrol ederiz
-
-
+    
         
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // rgba degeriyle rengimiz siyah ve tam opak 
         SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor() ile belirlenen renk ile doldurur
 
+    
         
         // Ekranin (800x600) tam ortasina hizalamak icin baslangic noktalari secerken
         //4x4 lük sistemimizde 4 kart genisligi ve 3 tane de padding var
@@ -177,8 +202,38 @@ int main(int argc, char *argv[])
 
         SDL_RenderPresent(renderer);
         // Renderer'in cizimlerini ekrana yansitir, bu fonksiyon cagrilmazsa yaptigimiz cizimler ekranda gorunmez
+        
+       if(flippedCount == 2)
+       {
+        SDL_Delay(1000); //kartlar acik kalacak ve kullaniciya gormesi icin 1 saniye bekle
+       
 
-    }// Oyun dongusu burada bitiyor, kullanici pencereyi kapatana kadar kartlar ekranda kalacak
+        //eslesme kontrolu
+        if(gameBoard[firstRow][firstCol] == gameBoard[secondRow][secondCol]) {
+            //kartlar eslesiyor, kartState'i 2 yaparak eslesmis olarak isaretliyorum
+            cardState[firstRow][firstCol] = 2;
+            cardState[secondRow][secondCol] = 2;
+            printf("Eslesme bulundu!\n");
+        } 
+        
+        else {
+            //kartlar eslesmiyor, kartState'i tekrar 0 yaparak kapali hale getiriyorum
+            cardState[firstRow][firstCol] = 0;
+            cardState[secondRow][secondCol] = 0;
+            printf("Yanlis secim!Kartlar kapatiliyor.\n");
+        }
+
+        flippedCount = 0; //kartlar kapatildi veya eslesti, acik kart sayisini sifirla
+
+        while (SDL_PollEvent(&event)) {
+            if(event.type == SDL_QUIT) {
+                isRunning = 0; 
+            } //kullanici bu bekleme suresince pencereyi kapatmak isterse, bu olay da yakalanir ve oyun kapanir
+        }
+
+      }
+
+    } // Oyun dongusu burada bitiyor, kullanici pencereyi kapatana kadar kartlar ekranda kalacak
 
     // Oyun bittiginde hafizayi temizlememiz lazim
     SDL_DestroyRenderer(renderer);// Renderer'i yok et
