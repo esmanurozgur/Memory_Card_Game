@@ -94,7 +94,16 @@ int main(int argc, char *argv[])
     int isRunning = 1; //oyunun calismaya devam edip etmeyecegni kontrol eden yapidir, 1 ise calisiyor, 0 ise duracak
     SDL_Event event; // klavye, fare veya pencere olaylarini (event) tutar
 
-    
+    int cardWidth = 100;  // Kart genisligi
+    int cardHeight = 100; // Kart yuksekligi
+    int padding = 20;     // Kartlar arasi bosluk
+    int startX = 170; // Kartlarin baslangic x koordinati
+    int startY = 70;  // Kartlarin baslangic y koordinati
+
+
+
+
+
     while (isRunning) {
         
         
@@ -107,6 +116,20 @@ int main(int argc, char *argv[])
             //event.type, kullanicinin ne tur bir eylemde bulundugunu belirtir, SDL_QUIT ise pencerenin kapatilmasi anlamina gelir
             // Eger event.type SDL_QUIT ise, isRunning 0 yapilir ve oyun dongusu kirilir, bu da oyunun kapanmasini saglar
 
+            else if(event.type == SDL_MOUSEBUTTONDOWN) {
+                int mouseX = event.button.x; //fare tiklamasinin x koordinati
+                int mouseY = event.button.y; //fare tiklamasinin y koordinati
+
+                //tiklanan kartin hangi satir ve sutunda oldugunu bulmak icin
+                int col = (mouseX - startX) / (cardWidth + padding);
+                int row = (mouseY - startY) / (cardHeight + padding);
+
+                //tiklanan yer gecerli bi satir ve sutunda mi kontrolu
+                if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+                    printf("Tiklanan kart: (%d, %d) - Deger: %d\n", row, col, gameBoard[row][col]);
+                    //tiklanan kartin satir, sutun ve degerini konsola yazdirir
+                }
+            }
 
         } //SDL_PollEvent(&event) ile eventleri kontrol ederiz
 
@@ -142,7 +165,7 @@ int main(int argc, char *argv[])
                 rect.h = cardHeight;
 
                 
-                SDL_SetRenderDrawColor(renderer, 118,206,242,1); // Kartlar icin rgba rengi belirledim
+                SDL_SetRenderDrawColor(renderer, 118,206,242,255); // Kartlar icin rgba rengi belirledim
 
                 SDL_RenderFillRect(renderer, &rect);
                 // Dikdortgenin icini boyayarak ekrana cizdirir
