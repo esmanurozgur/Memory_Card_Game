@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <SDL.h>
+#include <SDL_image.h>
 
 #define ROWS 4
 #define COLS 4
@@ -36,6 +37,7 @@ void initBoard() {
     }//cards[] dizisindeki degerler gameBoard[][] dizisine aktarildi
 }
 
+
 void printBoardToConsole() {
     printf("--- OYUN TAHTASI (ARKA PLAN) ---\n");
     for (int r = 0; r < ROWS; r++) {
@@ -46,6 +48,24 @@ void printBoardToConsole() {
     }
     printf("--------------------------------\n");
 }// bu fonk ile gameboard[][] konsala yazdirilir
+
+
+//resmi SDL'in anlayacağı bir formata ceviren fonksiyon
+//parametreler: resmin dosya yolu ve render yapacagimiz renderer pointeri
+
+SDL_Texture *LoadTexture(const char *path, SDL_Renderer *renderer)
+{
+    SDL_Surface* loadedSurface = IMG_Load(path);//IMG_Load() path ile resmi yukleyip bir SDL_Surface pointeri dondurur, hata olursa NULL dondurur
+    if (loadedSurface == NULL) {
+        printf("Resim yuklenemedi! Hata: %s\n", IMG_GetError());
+        return NULL;
+    }
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, loadedSurface); //yuklenen resmi rendererla uygun formata cevirir
+    SDL_FreeSurface(loadedSurface); //surface'i serbest birakiyoruz cunku artik texture olarak kullanacagiz
+    return texture;
+}
+
+
 
 int main(int argc, char *argv[])
  {
@@ -59,6 +79,15 @@ int main(int argc, char *argv[])
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("SDL Baslatilamadi! Hata: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    
+    int imgFlags = IMG_INIT_PNG; // PNG formatinda resimleri yuklemek istedigimizi belirtiyoruz
+    //IMG_Init() fonksiyonu imgFlags ile belirtilen formatlari destekleyip desteklemedigini kontrol eder destekliyorsa o formatlari baslatir
+    if (!(IMG_Init(imgFlags) & imgFlags)) {
+        printf("SDL_image baslatilamadi! Hata: %s\n", IMG_GetError());
+        SDL_Quit();
         return 1;
     }
 
@@ -92,6 +121,16 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+
+    SDL_Texture *cardTexture[9]; // 1'den 8'e kadar kartlar ve kapali kart icin toplam 9 texture
+    cardTexture[1]= LoadTexture("assets/c.png", renderer);
+    cardTexture[2]= LoadTexture("assets/cpp.png", renderer);
+    cardTexture[3]= LoadTexture("assets/java.png", renderer);
+    cardTexture[4]= LoadTexture("assets/python.png", renderer);
+    cardTexture[5]= LoadTexture("assets/js.png", renderer);
+    cardTexture[6]= LoadTexture("assets/rush.png", renderer);
+    cardTexture[7]= LoadTexture("assets/php.png", renderer);
+    cardTexture[8]= LoadTexture("assets/swift.png", renderer);
     
     int isRunning = 1; //oyunun calismaya devam edip etmeyecegni kontrol eden yapidir, 1 ise calisiyor, 0 ise duracak
     SDL_Event event; // klavye, fare veya pencere olaylarini (event) tutar
@@ -99,6 +138,13 @@ int main(int argc, char *argv[])
     int cardWidth = 100;  // Kart genisligi
     int cardHeight = 100; // Kart yuksekligi
     int padding = 20;     // Kartlar arasi bosluk
+
+
+
+    // Ekranin (800x600) tam ortasina hizalamak icin baslangic noktalari secerken
+    //4x4 lük sistemimizde 4 kart genisligi ve 3 tane de padding var
+    //ekrangenisligi - (4*kartgenisligi + 3*padding) formulunu x'in baslangic noktasini bulmak icin kullaniriz
+    //ekran yuksekligi - (4*kartyuksekligi + 3*padding) formulunu y'nin baslangic noktasini bulmak icin kullaniriz
     int startX = 170; // 800 - (4*100 + 3*20) = 800 - 460 = 170
     int startY = 70;  // 600 - (4*100 + 3*20) = 600 - 460 = 70
 
@@ -109,6 +155,9 @@ int main(int argc, char *argv[])
     int firstRow = -1, firstCol = -1; //acilan ilk kart
     int secondRow = -1, secondCol = -1; //acilan ikinci kart
     //su an hafiza tamamen bos, henuz hicbir kart acilmadi
+
+
+    int moves=0; //kullanici kac hamle yaptigini sayar, her iki kart acildiginda moves 1 artar
 
 
     while (isRunning)
@@ -137,7 +186,6 @@ int main(int argc, char *argv[])
 
                     if(cardState[row][col]==0 && flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
                         cardState[row][col] = 1; //kart acilir
-                        flippedCount++;
                     }
 
                     if(flippedCount == 0) {
@@ -152,6 +200,8 @@ int main(int argc, char *argv[])
                         secondRow = row;
                         secondCol = col;
                         flippedCount = 2; //iki kart acildi
+                        moves++; //kullanici bir hamle yapti, moves sayisini arttir
+                        printf("\nHamle sayisi: %d\n", moves);
                     }
                 }
             }
@@ -164,10 +214,7 @@ int main(int argc, char *argv[])
 
     
         
-        // Ekranin (800x600) tam ortasina hizalamak icin baslangic noktalari secerken
-        //4x4 lük sistemimizde 4 kart genisligi ve 3 tane de padding var
-        //ekrangenisligi - (4*kartgenisligi + 3*padding) formulunu x'in baslangic noktasini bulmak icin kullaniriz
-        //ekran yuksekligi - (4*kartyuksekligi + 3*padding) formulunu y'nin baslangic noktasini bulmak icin kullaniriz
+
         
      
 
@@ -187,16 +234,22 @@ int main(int argc, char *argv[])
 
                 if(cardState[r][c] == 0) {
                     SDL_SetRenderDrawColor(renderer,118, 206, 242, 255); // Kapali kartlar icin acik mavi
-                } 
-
-                else if(cardState[r][c] == 1 || cardState[r][c] == 2) {
-                    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Acik veya eslesmis kartlar icin beyaz
+                    SDL_RenderFillRect(renderer, &rect); // Dikdortgenin icini boyayarak ekrana cizdirir} 
                 }
+                else if(cardState[r][c] == 1 || cardState[r][c] == 2) 
+                {
+                    int val= gameBoard[r][c]; //kart degeri, 1'den 8'e kadar
 
-                SDL_RenderFillRect(renderer, &rect);
-                // Dikdortgenin icini boyayarak ekrana cizdirir
-                // SDL_RenderFillRect() fonksiyonu parametre olarak renderer pointeri ve cizilecek dikdortgenin koordinatlarini tutan
-                // SDL_Rect yapisini alir
+                    if(cardTexture[val] != NULL) {
+                        //kart degerine karslik gelen texture'i cizdirir
+                        SDL_RenderCopy(renderer, cardTexture[val], NULL, &rect); //kart degerine karslik gelen texture'i cizdirir
+                    }
+                    else {
+                        //eger texture yuklenemedi ise, karti beyaz olarak cizdirir
+                        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Beyaz renk
+                        SDL_RenderFillRect(renderer, &rect); // Dikdortgenin icini boyayarak ekrana cizdirir
+                    }
+                }
             }
         }
 
@@ -235,9 +288,19 @@ int main(int argc, char *argv[])
 
     } // Oyun dongusu burada bitiyor, kullanici pencereyi kapatana kadar kartlar ekranda kalacak
 
+
+    //oyun bittiginde memory leaks olmamasi icin kaynaklari serbest birakmamiz lazim
+    for(int i=1; i<=8; i++) {
+        if(cardTexture[i] != NULL) {
+            SDL_DestroyTexture(cardTexture[i]); // her bir texture'i yok et
+        }
+    }
+
+
     // Oyun bittiginde hafizayi temizlememiz lazim
     SDL_DestroyRenderer(renderer);// Renderer'i yok et
     SDL_DestroyWindow(window);// Pencereyi yok et
+    IMG_Quit(); // SDL_image subsistemini kapat
     SDL_Quit();// SDL subsistemlerini kapat
 
     return 0;
