@@ -3,51 +3,8 @@
 #include <time.h>
 #include <SDL.h>
 #include <SDL_image.h>
+#include "game.h"
 
-#define ROWS 4
-#define COLS 4
-
-int gameBoard[ROWS][COLS]; // oyun tahtasini temsil eden 2 boyutlu dizi
-int cardState[ROWS][COLS]={0}; //kartlar baslangicta kapali
-
-
-void initBoard() {
-    int cards[ROWS * COLS]; 
-    
-    for (int i = 0; i < (ROWS * COLS) / 2; i++) {
-        cards[i * 2] = i + 1;
-        cards[i * 2 + 1] = i + 1;
-    } //cards[]= {1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8} 
-
-    srand(time(NULL)); //rastgele sayi uretmek icin
-
-    for (int i = (ROWS * COLS) - 1; i > 0; i--) {
-        int j = rand() % (i + 1);
-        int temp = cards[i];
-        cards[i] = cards[j];
-        cards[j] = temp;
-    }//cards[] artik rastgele siralanmis durumda
-    //15. elemandan baslayarak her eleman icin rastgele bir index secilir ve o indexteki degerle yer degistirilir
-
-    int index = 0;
-    for (int r = 0; r < ROWS; r++) {
-        for (int c = 0; c < COLS; c++) {
-            gameBoard[r][c] = cards[index++];
-        }
-    }//cards[] dizisindeki degerler gameBoard[][] dizisine aktarildi
-}
-
-
-void printBoardToConsole() {
-    printf("--- OYUN TAHTASI (ARKA PLAN) ---\n");
-    for (int r = 0; r < ROWS; r++) {
-        for (int c = 0; c < COLS; c++) {
-            printf("%d\t", gameBoard[r][c]);
-        }
-        printf("\n"); 
-    }
-    printf("--------------------------------\n");
-}// bu fonk ile gameboard[][] konsala yazdirilir
 
 
 //resmi SDL'in anlayacağı bir formata ceviren fonksiyon
@@ -71,8 +28,9 @@ int main(int argc, char *argv[])
  {
     //argc arg. sayisi, argv arg. degerlerini string olarak tutan dizi
 
-    initBoard();
-    printBoardToConsole(); 
+    GameState game;
+    initGame(&game);
+    printBoardToConsole(&game);
 
     //SDL baslatmak icin SDL_Init() fonksiyonu
     //acilirsa 0 doner, hata olursa negatif deger doner
@@ -150,19 +108,8 @@ int main(int argc, char *argv[])
 
 
 
-
-    int flippedCount = 0; //kac kartin acik oldugunu sayar
-    int firstRow = -1, firstCol = -1; //acilan ilk kart
-    int secondRow = -1, secondCol = -1; //acilan ikinci kart
-    //su an hafiza tamamen bos, henuz hicbir kart acilmadi
-
-
-    int moves=0; //kullanici kac hamle yaptigini sayar, her iki kart acildiginda moves 1 artar
-
-
     while (isRunning)
     {
-        
         
         while (SDL_PollEvent(&event))
         {
@@ -184,24 +131,24 @@ int main(int argc, char *argv[])
                 //tiklanan yer gecerli bi satir ve sutunda mi kontrolu
                 if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
 
-                    if(cardState[row][col]==0 && flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
-                        cardState[row][col] = 1; //kart acilir
+                    if(game.board[row][col].state == 0 && game.flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
+                        game.board[row][col].state = 1; //kart acilir
                     }
 
-                    if(flippedCount == 0) {
+                    if(game.flippedCount == 0) {
                         //acilan ilk kartin konumunu kaydettim
-                        firstRow = row;
-                        firstCol = col;
-                        flippedCount = 1; //bir kart acildi
+                        game.firstRow = row;
+                        game.firstCol = col;
+                        game.flippedCount = 1; //bir kart acildi
                     } 
                         
-                    else if(flippedCount == 1) {
+                    else if(game.flippedCount == 1) {
                         //acilan ikinci kartin konumunu kaydettim
-                        secondRow = row;
-                        secondCol = col;
-                        flippedCount = 2; //iki kart acildi
-                        moves++; //kullanici bir hamle yapti, moves sayisini arttir
-                        printf("\nHamle sayisi: %d\n", moves);
+                        game.secondRow = row;
+                        game.secondCol = col;
+                        game.flippedCount = 2; //iki kart acildi
+                        game.moves++; //kullanici bir hamle yapti, moves sayisini arttir
+                        printf("\nHamle sayisi: %d\n", game.moves);
                     }
                 }
             }
@@ -232,13 +179,13 @@ int main(int argc, char *argv[])
                 rect.h = cardHeight;
 
 
-                if(cardState[r][c] == 0) {
+                if(game.board[r][c].state == 0) {
                     SDL_SetRenderDrawColor(renderer,118, 206, 242, 255); // Kapali kartlar icin acik mavi
                     SDL_RenderFillRect(renderer, &rect); // Dikdortgenin icini boyayarak ekrana cizdirir} 
                 }
-                else if(cardState[r][c] == 1 || cardState[r][c] == 2) 
+                else if(game.board[r][c].state == 1 || game.board[r][c].state == 2) 
                 {
-                    int val= gameBoard[r][c]; //kart degeri, 1'den 8'e kadar
+                    int val= game.board[r][c].val; //kart degeri, 1'den 8'e kadar
 
                     if(cardTexture[val] != NULL) {
                         //kart degerine karslik gelen texture'i cizdirir
@@ -256,27 +203,27 @@ int main(int argc, char *argv[])
         SDL_RenderPresent(renderer);
         // Renderer'in cizimlerini ekrana yansitir, bu fonksiyon cagrilmazsa yaptigimiz cizimler ekranda gorunmez
         
-       if(flippedCount == 2)
+       if(game.flippedCount == 2)
        {
         SDL_Delay(1000); //kartlar acik kalacak ve kullaniciya gormesi icin 1 saniye bekle
        
 
         //eslesme kontrolu
-        if(gameBoard[firstRow][firstCol] == gameBoard[secondRow][secondCol]) {
+        if(game.board[game.firstRow][game.firstCol].val == game.board[game.secondRow][game.secondCol].val) {
             //kartlar eslesiyor, kartState'i 2 yaparak eslesmis olarak isaretliyorum
-            cardState[firstRow][firstCol] = 2;
-            cardState[secondRow][secondCol] = 2;
+            game.board[game.firstRow][game.firstCol].state = 2;
+            game.board[game.secondRow][game.secondCol].state = 2;
             printf("Eslesme bulundu!\n");
         } 
         
         else {
             //kartlar eslesmiyor, kartState'i tekrar 0 yaparak kapali hale getiriyorum
-            cardState[firstRow][firstCol] = 0;
-            cardState[secondRow][secondCol] = 0;
+            game.board[game.firstRow][game.firstCol].state = 0;
+            game.board[game.secondRow][game.secondCol].state = 0;
             printf("Yanlis secim!Kartlar kapatiliyor.\n");
         }
 
-        flippedCount = 0; //kartlar kapatildi veya eslesti, acik kart sayisini sifirla
+        game.flippedCount = 0; //kartlar kapatildi veya eslesti, acik kart sayisini sifirla
 
         while (SDL_PollEvent(&event)) {
             if(event.type == SDL_QUIT) {
