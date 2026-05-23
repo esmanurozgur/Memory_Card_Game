@@ -17,6 +17,7 @@ typedef struct {
     int secondRow, secondCol;
     int timeRemaining;
     int isGameOver;
+    int matchedPairs;
 } GameState; // GameState yapisi, oyun tahtasini ve oyun durumunu tutar
 
 void initGame(GameState *game);

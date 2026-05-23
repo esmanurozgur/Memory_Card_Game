@@ -3,6 +3,7 @@
 #include <time.h>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 #include "game.h"
 
 
@@ -25,7 +26,7 @@ SDL_Texture *LoadTexture(const char *path, SDL_Renderer *renderer)
 
 
 int main(int argc, char *argv[])
- {
+{
     //argc arg. sayisi, argv arg. degerlerini string olarak tutan dizi
 
     GameState game;
@@ -46,6 +47,17 @@ int main(int argc, char *argv[])
     if (!(IMG_Init(imgFlags) & imgFlags)) {
         printf("SDL_image baslatilamadi! Hata: %s\n", IMG_GetError());
         SDL_Quit();
+        return 1;
+    }
+
+    if (TTF_Init() == -1) {
+        printf("SDL_ttf baslatilamadi! Hata: %s\n", TTF_GetError());
+        return 1;
+    }
+
+    TTF_Font *font = TTF_OpenFont("assets/IMPACT.ttf", 24); //yazilari gostermek icin bir font yukledim
+    if (font == NULL) {
+        printf("Font yuklenemedi! Hata: %s\n", TTF_GetError());
         return 1;
     }
 
@@ -226,38 +238,69 @@ int main(int argc, char *argv[])
             }
         }
 
-        SDL_RenderPresent(renderer);
-        // Renderer'in cizimlerini ekrana yansitir, bu fonksiyon cagrilmazsa yaptigimiz cizimler ekranda gorunmez
-        
-       if(game.flippedCount == 2)
-       {
-        SDL_Delay(1000); //kartlar acik kalacak ve kullaniciya gormesi icin 1 saniye bekle
-       
+        if(font != NULL){
+            char timeText[100];
 
-        //eslesme kontrolu
-        if(game.board[game.firstRow][game.firstCol].val == game.board[game.secondRow][game.secondCol].val) {
-            //kartlar eslesiyor, kartState'i 2 yaparak eslesmis olarak isaretliyorum
-            game.board[game.firstRow][game.firstCol].state = 2;
-            game.board[game.secondRow][game.secondCol].state = 2;
-            printf("Eslesme bulundu!\n");
-        } 
-        
-        else {
-            //kartlar eslesmiyor, kartState'i tekrar 0 yaparak kapali hale getiriyorum
-            game.board[game.firstRow][game.firstCol].state = 0;
-            game.board[game.secondRow][game.secondCol].state = 0;
-            printf("Yanlis secim!Kartlar kapatiliyor.\n");
+            if(game.matchedPairs == 8) {
+                snprintf(timeText, sizeof(timeText), "Tebrikler! Tum kartlari eslestirdiniz. Kalan sure: %d saniye", game.timeRemaining);
+            }
+            else if(game.timeRemaining <= 0) {
+                snprintf(timeText, sizeof(timeText), "SURE BITTI! Eslesen kart ciftleri: %d", game.matchedPairs);
+            }
+            else {
+                snprintf(timeText, sizeof(timeText), "Kalan Sure: %d saniye | Hamle: %d | Eslesen Ciftler: %d", game.timeRemaining, game.moves, game.matchedPairs);
+            }
+
+            SDL_Color textColor = {255, 255, 255}; // Beyaz renk
+            SDL_Surface* textSurface = TTF_RenderText_Solid(font, timeText, textColor); //yaziyi bir surface'e renderlar
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); //surface'i texture'a cevirir
+
+            SDL_Rect textRect;
+            textRect.x = 20; //yazinin x konumu
+            textRect.y = 20; //yazinin y konumu
+            textRect.w = textSurface->w; //yazinin genisligi
+            textRect.h = textSurface->h; //yazinin yuksekligi
+            SDL_RenderCopy(renderer, textTexture, NULL, &textRect); //yaziyi ekrana cizdirir
+
+            SDL_FreeSurface(textSurface); //surface'i serbest birakiyoruz cunku artik texture olarak kullanacagiz
+            SDL_DestroyTexture(textTexture); //text texture'ini yok ediyoruz cunku her dongude yeniden olusturuluyor
         }
+        SDL_RenderPresent(renderer); //render edilen her seyi ekrana gosterir
+        
+    
+        if(game.flippedCount ==2){
+            SDL_Delay(1000); //2 kart acildiktan sonra 1 saniye bekle
 
-        game.flippedCount = 0; //kartlar kapatildi veya eslesti, acik kart sayisini sifirla
+            if(game.board[game.firstRow][game.firstCol].val == game.board[game.secondRow][game.secondCol].val) {
+                //kartlar eslesmis
+                game.board[game.firstRow][game.firstCol].state = 2; //eslesen kartlar eslesmis olarak isaretlenir
+                game.board[game.secondRow][game.secondCol].state = 2;
+                game.matchedPairs++; //eslesen cift sayisini arttir
+               
+                if(game.matchedPairs == 8) {
+                    game.isGameOver = 1; //tum kartlar eslesmis, oyun bitmis
+                    printf("Tebrikler! Tum kartlari eslestirdiniz. Kalan sure: %d saniye\n", game.timeRemaining);
+                }
 
-        while (SDL_PollEvent(&event)) {
-            if(event.type == SDL_QUIT) {
-                isRunning = 0; 
-            } //kullanici bu bekleme suresince pencereyi kapatmak isterse, bu olay da yakalanir ve oyun kapanir
-        }
+                printf("Eslesen kartlar: %d\n", game.matchedPairs);
+            }
+                else {
+                    //kartlar eslesmemis, tekrar kapatilir
+                    game.board[game.firstRow][game.firstCol].state = 0;
+                    game.board[game.secondRow][game.secondCol].state = 0;
+                    printf("Kartlar eslesmedi. Tekrar deneyin.\n");
+                }
 
-      }
+                game.flippedCount = 0; //acik kart sayisini sifirla, kullanici yeni kartlar acabilir
+
+                while (SDL_PollEvent(&event)) {
+                    if (event.type == SDL_QUIT) {
+                        isRunning = 0; //kullanici pencereyi kapatmak isterse oyun dongusunu kir
+                    }
+                }
+            }
+
+      
 
     } // Oyun dongusu burada bitiyor, kullanici pencereyi kapatana kadar kartlar ekranda kalacak
 
@@ -273,8 +316,11 @@ int main(int argc, char *argv[])
     // Oyun bittiginde hafizayi temizlememiz lazim
     SDL_DestroyRenderer(renderer);// Renderer'i yok et
     SDL_DestroyWindow(window);// Pencereyi yok et
+    TTF_CloseFont(font); // Fontu kapat
+    TTF_Quit(); // SDL_ttf subsistemini kapat
     IMG_Quit(); // SDL_image subsistemini kapat
     SDL_Quit();// SDL subsistemlerini kapat
 
     return 0;
 }
+

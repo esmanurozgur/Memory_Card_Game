@@ -38,6 +38,7 @@ void initGame(GameState *game) {
     game->secondCol = -1;
     game->timeRemaining = 60; //oyun baslangicinda 60 saniye
     game->isGameOver = 0; //oyun baslangicinda oyun bitmedi olarak isaretlenir
+    game->matchedPairs = 0; //eslesen kart ciftlerinin sayisi baslangicta 0
 }// initGame fonksiyonu GameState yapisini alir ve oyun tahtasini rastgele degerlerle doldurur ve oyun durumunu baslangicta sifirlar
 
 void printBoardToConsole(GameState *game) {
