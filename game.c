@@ -36,6 +36,8 @@ void initGame(GameState *game) {
     game->firstCol = -1;
     game->secondRow = -1;
     game->secondCol = -1;
+    game->timeRemaining = 60; //oyun baslangicinda 60 saniye
+    game->isGameOver = 0; //oyun baslangicinda oyun bitmedi olarak isaretlenir
 }// initGame fonksiyonu GameState yapisini alir ve oyun tahtasini rastgele degerlerle doldurur ve oyun durumunu baslangicta sifirlar
 
 void printBoardToConsole(GameState *game) {

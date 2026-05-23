@@ -108,9 +108,32 @@ int main(int argc, char *argv[])
 
 
 
+    Uint32 startTime = SDL_GetTicks(); //oyuna basladıgımız anı milisaniye cinsinden verir
+
     while (isRunning)
     {
-        
+        if(game.isGameOver == 0) {
+            Uint32 currentTime = SDL_GetTicks(); //suanki zamani al
+            Uint32 elapsedTime = (currentTime - startTime) / 1000; //gecen zamani saniye cinsine cevir
+            game.timeRemaining = 60 - elapsedTime; //kalan zamani hesapla
+
+            if(game.timeRemaining <= 0) {
+                game.isGameOver = 1; //zaman doldu, oyun bitmis
+                printf("Zaman doldu! Oyun bitti.\n");
+            }
+
+            char titleBuffer[100];
+            //sprintf() fonksiyonu titleBuffer'a formatli bir string yazmamizi saglar,
+            // sizeof(titleBuffer) ile bufferin boyutunu belirtiyoruz, 
+            //geri kalan parametreler format stringine gore degisir    
+            snprintf(titleBuffer, sizeof(titleBuffer), "Memory Card Game - Sure: %d saniye | Hamle: %d", game.timeRemaining, game.moves);
+            SDL_SetWindowTitle(window, titleBuffer);//SDL_SetWindowTitle() fonksiyonu pencerenin basligini degistirir, titleBuffer'daki stringi baslik olarak kullaniriz
+        }
+
+        else{
+            SDL_SetWindowTitle(window, "SURE BITTI! - Yeniden baslatmak icin kapatin"); //oyun bittiginde pencere basligini degistiriyoruz
+        }
+
         while (SDL_PollEvent(&event))
         {
             
@@ -121,34 +144,37 @@ int main(int argc, char *argv[])
             // Eger event.type SDL_QUIT ise, isRunning 0 yapilir ve oyun dongusu kirilir, bu da oyunun kapanmasini saglar
 
             else if(event.type == SDL_MOUSEBUTTONDOWN) {
-                int mouseX = event.button.x; //fare tiklamasinin x koordinati
-                int mouseY = event.button.y; //fare tiklamasinin y koordinati
 
-                //tiklanan kartin hangi satir ve sutunda oldugunu bulmak icin
-                int col = (mouseX - startX) / (cardWidth + padding);
-                int row = (mouseY - startY) / (cardHeight + padding);
+                if(game.isGameOver == 0){
+                    int mouseX = event.button.x; //fare tiklamasinin x koordinati
+                    int mouseY = event.button.y; //fare tiklamasinin y koordinati
 
-                //tiklanan yer gecerli bi satir ve sutunda mi kontrolu
-                if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+                    //tiklanan kartin hangi satir ve sutunda oldugunu bulmak icin
+                    int col = (mouseX - startX) / (cardWidth + padding);
+                    int row = (mouseY - startY) / (cardHeight + padding);
 
-                    if(game.board[row][col].state == 0 && game.flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
-                        game.board[row][col].state = 1; //kart acilir
-                    }
+                    //tiklanan yer gecerli bi satir ve sutunda mi kontrolu
+                    if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
 
-                    if(game.flippedCount == 0) {
-                        //acilan ilk kartin konumunu kaydettim
-                        game.firstRow = row;
-                        game.firstCol = col;
-                        game.flippedCount = 1; //bir kart acildi
-                    } 
+                         if(game.board[row][col].state == 0 && game.flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
+                            game.board[row][col].state = 1; //kart acilir
+                         }
+
+                        if(game.flippedCount == 0) {
+                            //acilan ilk kartin konumunu kaydettim
+                            game.firstRow = row;
+                            game.firstCol = col;
+                            game.flippedCount = 1; //bir kart acildi
+                         } 
                         
-                    else if(game.flippedCount == 1) {
-                        //acilan ikinci kartin konumunu kaydettim
-                        game.secondRow = row;
-                        game.secondCol = col;
-                        game.flippedCount = 2; //iki kart acildi
-                        game.moves++; //kullanici bir hamle yapti, moves sayisini arttir
-                        printf("\nHamle sayisi: %d\n", game.moves);
+                        else if(game.flippedCount == 1) {
+                            //acilan ikinci kartin konumunu kaydettim
+                            game.secondRow = row;
+                            game.secondCol = col;
+                            game.flippedCount = 2; //iki kart acildi
+                            game.moves++; //kullanici bir hamle yapti, moves sayisini arttir
+                            printf("\nHamle sayisi: %d\n", game.moves);
+                        }
                     }
                 }
             }

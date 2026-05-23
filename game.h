@@ -15,6 +15,8 @@ typedef struct {
     int flippedCount;
     int firstRow, firstCol;
     int secondRow, secondCol;
+    int timeRemaining;
+    int isGameOver;
 } GameState; // GameState yapisi, oyun tahtasini ve oyun durumunu tutar
 
 void initGame(GameState *game);
