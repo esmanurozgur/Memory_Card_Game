@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 
     while (isRunning)
     {
-        if(game.isGameOver == 0) {
+        if(game.isGameOver == 0 && gameMode == 1) {
             Uint32 currentTime = SDL_GetTicks(); //suanki zamani al
             Uint32 elapsedTime = (currentTime - startTime) / 1000; //gecen zamani saniye cinsine cevir
             game.timeRemaining = 60 - elapsedTime; //kalan zamani hesapla
@@ -161,10 +161,14 @@ int main(int argc, char *argv[])
             snprintf(titleBuffer, sizeof(titleBuffer), "Memory Card Game - Sure: %d saniye | Hamle: %d", game.timeRemaining, game.moves);
             SDL_SetWindowTitle(window, titleBuffer);//SDL_SetWindowTitle() fonksiyonu pencerenin basligini degistirir, titleBuffer'daki stringi baslik olarak kullaniriz
         }
+        else if(gameMode == 0){
+            SDL_SetWindowTitle(window, "Memory Card Game - Hos Geldiniz!"); //giris ekranindayken pencere basligini belirliyoruz
 
-        else{
-            SDL_SetWindowTitle(window, "SURE BITTI! - Yeniden baslatmak icin kapatin"); //oyun bittiginde pencere basligini degistiriyoruz
         }
+        else if(game.isGameOver == 1) {
+            SDL_SetWindowTitle(window, "TEBRIKLER! Tum kartlari eslestirdiniz! - Yeniden baslat butonuna tiklayin"); //tum kartlar eslesmis ve oyun bitmisse pencere basligini degistiriyoruz
+        }
+    
 
         while (SDL_PollEvent(&event))
         {
@@ -232,6 +236,8 @@ int main(int argc, char *argv[])
                             //tiklanan y kutunun ust kenarindan buyuk ve alt kenarindan kucukse
                             //restart butonuna tiklandi, oyunu yeniden baslat
                             initGame(&game); //oyunu baslatan fonksiyonu tekrar cagirarak oyunu sifirla
+                            game.isGameOver = 0; //oyun bitmedi olarak isaretle
+                            gameMode = 1; //oyun moduna gectik, artik kartlar ekranda olacak ve tiklanabilir olacaklar
                             startTime = SDL_GetTicks(); //yeni bir oyun baslattigimiz icin zamani sifirla
                             printf("Oyun yeniden baslatildi!\n");
                         }
@@ -265,6 +271,7 @@ int main(int argc, char *argv[])
             textRect.h = textSurface->h; //yazinin yuksekligi
             SDL_RenderCopy(renderer, textTexture, NULL, &textRect); //buton yazisini ekrana cizdirir
             SDL_FreeSurface(textSurface); //surface'i serbest birakiyoruz cunku artik texture
+            SDL_DestroyTexture(textTexture); //text texture'ini yok ediyoruz cunku her dongude yeniden olusturuluyor
 
         }
         
@@ -363,7 +370,7 @@ int main(int argc, char *argv[])
         SDL_RenderPresent(renderer); //render edilen her seyi ekrana gosterir
         
     
-        if(game.flippedCount ==2){
+        if(game.flippedCount ==2 && gameMode == 1) {
             SDL_Delay(1000); //2 kart acildiktan sonra 1 saniye bekle
 
             if(game.board[game.firstRow][game.firstCol].val == game.board[game.secondRow][game.secondCol].val) {
