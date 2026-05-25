@@ -5,6 +5,7 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include "game.h"
+#include <SDL_mixer.h>
 
 
 
@@ -52,6 +53,20 @@ int main(int argc, char *argv[])
 
     if (TTF_Init() == -1) {
         printf("SDL_ttf baslatilamadi! Hata: %s\n", TTF_GetError());
+        return 1;
+    }
+
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        printf("SDL_mixer baslatilamadi! Hata: %s\n", Mix_GetError());
+        return 1;
+    }
+    Mix_Chunk *flipSound = Mix_LoadWAV("assets/freesound_community-flipcard-91468.mp3"); //kart cevirme sesi
+    Mix_Chunk *matchSound = Mix_LoadWAV("assets/oxidvideos-placing-playing-card-522514.mp3"); //kart eslesme sesi
+    Mix_Chunk *wrongSound = Mix_LoadWAV("assets/freesound_community-wronganswer-37702.mp3"); //kart eslesmeme sesi
+    //Mix_Chunk ses efektleri icin kullanilir
+
+    if(flipSound == NULL || matchSound == NULL || wrongSound == NULL) {
+        printf("Ses dosyalari yuklenemedi! Hata: %s\n", Mix_GetError());
         return 1;
     }
 
@@ -207,7 +222,9 @@ int main(int argc, char *argv[])
                     if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
 
                         if(game.board[row][col].state == 0 && game.flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
-                             game.board[row][col].state = 1; //kart acilir
+                            game.board[row][col].state = 1; //kart acilir
+                            Mix_PlayChannel(-1, flipSound, 0); //kart cevirme sesi oynatilir
+
                         }
 
                         if(game.flippedCount == 0) {
@@ -314,6 +331,7 @@ int main(int argc, char *argv[])
                 char timeText[100];
 
                 if(game.matchedPairs == 8) {
+                    game.isGameOver = 1; //tum kartlar eslesmis, oyun bitmis
                     snprintf(timeText, sizeof(timeText), "Tebrikler! Tum kartlari eslestirdiniz. Kalan sure: %d saniye", game.timeRemaining);
                 }
                 else if(game.timeRemaining <= 0) {
@@ -374,6 +392,7 @@ int main(int argc, char *argv[])
 
             if(game.board[game.firstRow][game.firstCol].val == game.board[game.secondRow][game.secondCol].val) {
                 //kartlar eslesmis
+                Mix_PlayChannel(-1, matchSound, 0); //eslesme sesi oynatilir
                 game.board[game.firstRow][game.firstCol].state = 2; //eslesen kartlar eslesmis olarak isaretlenir
                 game.board[game.secondRow][game.secondCol].state = 2;
                 game.matchedPairs++; //eslesen cift sayisini arttir
@@ -389,6 +408,7 @@ int main(int argc, char *argv[])
                     //kartlar eslesmemis, tekrar kapatilir
                     game.board[game.firstRow][game.firstCol].state = 0;
                     game.board[game.secondRow][game.secondCol].state = 0;
+                    Mix_PlayChannel(-1, wrongSound, 0); //eslesmeme sesi oynatilir
                     printf("Kartlar eslesmedi. Tekrar deneyin.\n");
                 }
 
@@ -416,6 +436,19 @@ int main(int argc, char *argv[])
 
     // Oyun bittiginde hafizayi temizlememiz lazim
     SDL_DestroyRenderer(renderer);// Renderer'i yok et
+    if(font != NULL) {
+        TTF_CloseFont(font); // Fontu kapat
+    }
+    if(flipSound != NULL) {
+        Mix_FreeChunk(flipSound); //kart cevirme sesini serbest birak
+    }
+    if(matchSound != NULL) {
+        Mix_FreeChunk(matchSound); //eslesme sesini serbest birak
+    }
+    if(wrongSound != NULL) {
+        Mix_FreeChunk(wrongSound); //eslesmeme sesini serbest birak
+    }
+    Mix_CloseAudio(); // SDL_mixer subsistemini kapat
     SDL_DestroyWindow(window);// Pencereyi yok et
     TTF_CloseFont(font); // Fontu kapat
     TTF_Quit(); // SDL_ttf subsistemini kapat
