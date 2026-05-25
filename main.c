@@ -181,68 +181,67 @@ int main(int argc, char *argv[])
 
             else if(event.type == SDL_MOUSEBUTTONDOWN) {
 
-                if(game.isGameOver == 0){
-                    int mouseX = event.button.x; //fare tiklamasinin x koordinati
-                    int mouseY = event.button.y; //fare tiklamasinin y koordinati
+                int mouseX = event.button.x; //fare tiklamasinin x koordinati
+                int mouseY = event.button.y; //fare tiklamasinin y koordinati
 
-                    //durum 0:Giris ekrani
-                    if(gameMode == 0) {
-                        if(mouseX >= startButton.x && mouseX <= startButton.x + startButton.w &&
-                           mouseY >= startButton.y && mouseY <= startButton.y + startButton.h) {
-                            //tiklanan x kutunun sol kenarından buyuk ve sag kenarindan kucuk
-                            //tiklanan y kutunun ust kenarindan buyuk ve alt kenarindan kucukse
-                            //start butonuna tiklandi, oyunu baslat
-                            gameMode = 1; //oyun moduna gectik, artik kartlar ekranda olacak ve tiklanabilir olacaklar
-                            startTime = SDL_GetTicks(); //oyunu baslattigimiz anin zamanini kaydedelim, bu zamani oyun sure hesaplamak icin kullanacagiz
-                            printf("Oyun baslatildi!\n");
-                        }
+                //durum 0:Giris ekrani
+                if(gameMode == 0) {
+                    if(mouseX >= startButton.x && mouseX <= startButton.x + startButton.w &&
+                        mouseY >= startButton.y && mouseY <= startButton.y + startButton.h) {
+                        //tiklanan x kutunun sol kenarından buyuk ve sag kenarindan kucuk
+                        //tiklanan y kutunun ust kenarindan buyuk ve alt kenarindan kucukse
+                        //start butonuna tiklandi, oyunu baslat
+                        gameMode = 1; //oyun moduna gectik, artik kartlar ekranda olacak ve tiklanabilir olacaklar
+                        startTime = SDL_GetTicks(); //oyunu baslattigimiz anin zamanini kaydedelim, bu zamani oyun sure hesaplamak icin kullanacagiz
+                        printf("Oyun baslatildi!\n");
                     }
+               }
 
-                    //durum 1: Oyun ekrani, kartlar tiklanabilir
-                    else if(gameMode == 1 && game.isGameOver == 0) {
-                        //tiklanan kartin hangi satir ve sutunda oldugunu bulmak icin
-                        int col = (mouseX - startX) / (cardWidth + padding);
-                        int row = (mouseY - startY) / (cardHeight + padding);
+                //durum 1: Oyun ekrani, kartlar tiklanabilir
+                else if(gameMode == 1 && game.isGameOver == 0) {
+                    //tiklanan kartin hangi satir ve sutunda oldugunu bulmak icin
+                    int col = (mouseX - startX) / (cardWidth + padding);
+                    int row = (mouseY - startY) / (cardHeight + padding);
 
-                        //tiklanan yer gecerli bi satir ve sutunda mi kontrolu
-                        if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+                    //tiklanan yer gecerli bi satir ve sutunda mi kontrolu
+                    if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
 
-                            if(game.board[row][col].state == 0 && game.flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
-                                game.board[row][col].state = 1; //kart acilir
-                            }
+                        if(game.board[row][col].state == 0 && game.flippedCount < 2) { //kart kapaliysa ve 2 karttan az acik varsa
+                             game.board[row][col].state = 1; //kart acilir
+                        }
 
-                            if(game.flippedCount == 0) {
-                                //acilan ilk kartin konumunu kaydettim
-                                game.firstRow = row;
-                                game.firstCol = col;
-                                game.flippedCount = 1; //bir kart acildi
-                            } 
+                        if(game.flippedCount == 0) {
+                            //acilan ilk kartin konumunu kaydettim
+                            game.firstRow = row;
+                            game.firstCol = col;
+                            game.flippedCount = 1; //bir kart acildi
+                        } 
                         
-                            else if(game.flippedCount == 1) {
-                                //acilan ikinci kartin konumunu kaydettim
-                                game.secondRow = row;
-                                game.secondCol = col;
-                                game.flippedCount = 2; //iki kart acildi
-                                game.moves++; //kullanici bir hamle yapti, moves sayisini arttir
-                                printf("\nHamle sayisi: %d\n", game.moves);
-                            }
-                        }
-                    }
-                     //durum 2: Oyun bitti, restart butonu tiklanabilir
-                    else if(game.isGameOver == 1) {
-                        if(mouseX >= restartButton.x && mouseX <= restartButton.x + restartButton.w &&
-                           mouseY >= restartButton.y && mouseY <= restartButton.y + restartButton.h) {
-                            //tiklanan x kutunun sol kenarından buyuk ve sag kenarindan kucuk
-                            //tiklanan y kutunun ust kenarindan buyuk ve alt kenarindan kucukse
-                            //restart butonuna tiklandi, oyunu yeniden baslat
-                            initGame(&game); //oyunu baslatan fonksiyonu tekrar cagirarak oyunu sifirla
-                            game.isGameOver = 0; //oyun bitmedi olarak isaretle
-                            gameMode = 1; //oyun moduna gectik, artik kartlar ekranda olacak ve tiklanabilir olacaklar
-                            startTime = SDL_GetTicks(); //yeni bir oyun baslattigimiz icin zamani sifirla
-                            printf("Oyun yeniden baslatildi!\n");
+                        else if(game.flippedCount == 1) {
+                            //acilan ikinci kartin konumunu kaydettim
+                            game.secondRow = row;
+                            game.secondCol = col;
+                            game.flippedCount = 2; //iki kart acildi
+                            game.moves++; //kullanici bir hamle yapti, moves sayisini arttir
+                            printf("\nHamle sayisi: %d\n", game.moves);
                         }
                     }
                 }
+                //durum 2: Oyun bitti, restart butonu tiklanabilir
+                else if(game.isGameOver == 1) {
+                    if(mouseX >= restartButton.x && mouseX <= restartButton.x + restartButton.w &&
+                        mouseY >= restartButton.y && mouseY <= restartButton.y + restartButton.h) {
+                        //tiklanan x kutunun sol kenarından buyuk ve sag kenarindan kucuk
+                        //tiklanan y kutunun ust kenarindan buyuk ve alt kenarindan kucukse
+                        //restart butonuna tiklandi, oyunu yeniden baslat
+                        initGame(&game); //oyunu baslatan fonksiyonu tekrar cagirarak oyunu sifirla
+                        game.isGameOver = 0; //oyun bitmedi olarak isaretle
+                        gameMode = 1; //oyun moduna gectik, artik kartlar ekranda olacak ve tiklanabilir olacaklar
+                        startTime = SDL_GetTicks(); //yeni bir oyun baslattigimiz icin zamani sifirla 
+                        printf("Oyun yeniden baslatildi!\n");
+                    }
+                }
+                
             }
 
         } //SDL_PollEvent(&event) ile eventleri kontrol ederiz
