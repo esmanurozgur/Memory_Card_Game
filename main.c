@@ -76,6 +76,11 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    SDL_DisplayMode displayMode;
+    SDL_GetDesktopDisplayMode(0, &displayMode); //mevcut ekranin cozunurlugunu alir
+    int screenW = displayMode.w; //ekran genisligi
+    int screenH = displayMode.h; //ekran yuksekligi
+
     //SDL ile pencere olusturmak icin SDL_CreateWindow() fonksiyonu
     //parametreler: baslik, x konumu, y konumu, genislik, yukseklik, pencere gorunurlugu
     // *window basarili olursa pencereye isaret eden pointer, hata olursa NULL doner
@@ -83,7 +88,9 @@ int main(int argc, char *argv[])
     SDL_Window *window = SDL_CreateWindow("Memory Card Game", 
                                           SDL_WINDOWPOS_CENTERED, 
                                           SDL_WINDOWPOS_CENTERED, 
-                                          1024, 768, SDL_WINDOW_SHOWN);
+                                          screenW, screenH, SDL_WINDOW_MAXIMIZED);
+    
+                                          //SDL_WINDOW_MAXIMIZED, pencereyi guncel ekranimiza gore en buyuk hale getirir
     if (window == NULL) {
         printf("Pencere olusturulamadi! Hata: %s\n", SDL_GetError()); //SDL_GetError() fonksiyonu en son olusan hatayi string olarak dondurur
         SDL_Quit(); // SDL_Init() ile baslatilan subsistemleri kapatir
@@ -122,8 +129,8 @@ int main(int argc, char *argv[])
     int isRunning = 1; //oyunun calismaya devam edip etmeyecegni kontrol eden yapidir, 1 ise calisiyor, 0 ise duracak
     SDL_Event event; // klavye, fare veya pencere olaylarini (event) tutar
 
-    int screenW= 1024; //ekran genisligi
-    int screenH= 768;  //ekran yuksekligi
+
+    SDL_GetWindowSize(window, &screenW, &screenH); //pencerenin genisligini ve yuksekligini alir, bu degerleri screenW ve screenH degiskenlerine atar
     int cardWidth = 100;  // Kart genisligi
     int cardHeight = 100; // Kart yuksekligi
     int padding = 20;     // Kartlar arasi bosluk
@@ -144,14 +151,14 @@ int main(int argc, char *argv[])
     
     //Butonlarin yerleri
     SDL_Rect startButton = {
-        .x = 412, //start butonunun x konumu
-        .y = 350, //start butonunun y konumu
+        .x = (screenW - 200) / 2, //start butonunun x konumu
+        .y = (screenH - 60) / 2, //start butonunun y konumu
         .w = 200, //start butonunun genisligi
         .h = 60  //start butonunun yuksekligi
     };
     SDL_Rect restartButton={
-        .x = 412, //restart butonunun x konumu
-        .y = 650, //restart butonunun y konumu
+        .x = (screenW - 200) / 2, //restart butonunun x konumu
+        .y = screenH - 150, //restart butonunun y konumu, ekranin altindan 150 piksel yukari
         .w = 200, //restart butonunun genisligi
         .h = 60   //restart butonunun yuksekligi
     };
@@ -194,6 +201,11 @@ int main(int argc, char *argv[])
             //event.type, kullanicinin ne tur bir eylemde bulundugunu belirtir, SDL_QUIT ise pencerenin kapatilmasi anlamina gelir
             // Eger event.type SDL_QUIT ise, isRunning 0 yapilir ve oyun dongusu kirilir, bu da oyunun kapanmasini saglar
 
+            else if(event.type == SDL_KEYDOWN) {
+                if(event.key.keysym.sym == SDLK_ESCAPE) { //kullanici ESC tusuna basarsa
+                    isRunning = 0; //oyunu kapat
+                }
+            }
             else if(event.type == SDL_MOUSEBUTTONDOWN) {
 
                 int mouseX = event.button.x; //fare tiklamasinin x koordinati
