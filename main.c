@@ -24,7 +24,9 @@ SDL_Texture *LoadTexture(const char *path, SDL_Renderer *renderer)
     return texture;
 }
 
-
+int IsMouseClicked(int mx, int my, SDL_Rect r) { 
+    return (mx >= r.x && mx <= (r.x + r.w) && my >= r.y && my <= (r.y + r.h));
+ } //IsMouseClicked() fonksiyonu, fare tiklamasinin bir dikdortgenin icinde olup olmadigini kontrol eder
 
 int main(int argc, char *argv[])
 {
@@ -123,9 +125,22 @@ int main(int argc, char *argv[])
     cardTexture[6]= LoadTexture("assets/rush.png", renderer);
     cardTexture[7]= LoadTexture("assets/php.png", renderer);
     cardTexture[8]= LoadTexture("assets/swift.png", renderer);
-    
+
+
+    SDL_Texture *playTexture = LoadTexture("assets/playicon-removebg-preview.png", renderer); 
+    SDL_Texture *restartTexture = LoadTexture("assets/restarticon-removebg-preview.png", renderer);
+    SDL_Texture *settingsTexture = LoadTexture("assets/settingsicon-removebg-preview.png", renderer);
+    SDL_Texture *speakerTexture = LoadTexture("assets/musicicon-removebg-preview.png", renderer);
+    SDL_Texture *homeTexture = LoadTexture("assets/homeicon-removebg-preview.png", renderer);
+    SDL_Texture *logoTexture = LoadTexture("assets/Blue Pink Groovy Playful Coffee Shop Logo.png", renderer);
+
+    if(playTexture == NULL || restartTexture == NULL || settingsTexture == NULL || speakerTexture == NULL || homeTexture == NULL || logoTexture == NULL) {
+        printf("Bazi ikonlar yuklenemedi! Hata: %s\n", IMG_GetError());
+        // Yuklenemeyen ikonlar icin hata mesajı yazdirilir, ancak oyunun geri kalani icin devam edilir
+    }
 
     int gameMode=0; //0: menu, 1: oyun, 2: oyun bitti
+    int soundEffectEnabled = 1; //ses efektlerinin acik olup olmadigini kontrol eder, 1acik 0 kapali
     int isRunning = 1; //oyunun calismaya devam edip etmeyecegni kontrol eden yapidir, 1 ise calisiyor, 0 ise duracak
     SDL_Event event; // klavye, fare veya pencere olaylarini (event) tutar
 
@@ -144,24 +159,66 @@ int main(int argc, char *argv[])
     int startX = (screenW - (4 * cardWidth + 3 * padding)) / 2; //kartlarin baslangic x konumu
     int startY = (screenH - (4 * cardHeight + 3 * padding)) / 2;  //kartlarin baslangic y konumu
 
+    int iconSize =100; //play,home ve restart icin buyuk ikonlar
+    int uiIconSize = 60; //settings ve speaker icin kucuk ikonlar
 
+    int logoW = 800, logoH = 300; //logo icin genislik ve yukseklik
+    int startButtonSize = 130; //play butonu logo altinda daha buyuk gorunsun diye startButtonSize'i iconSize'dan buyuk yaptim
+    int gap = 40; //logo ile butonlar arası bosluk
+
+    int totalMenuHeight = logoH + gap + startButtonSize; //logo ve butonlarin toplam yuksekligi
+    int menuStartY = (screenH - totalMenuHeight) / 2; //menu icin baslangic y konumu, menu ekranin tam ortasina yerlestirilir
+
+    //giris ekrani (logo+play+settings)
+    SDL_Rect logoRect = {
+        .x = (screenW - logoW) / 2, //logonun x konumu, ekranin tam ortasina yerlestir
+        .y = menuStartY, //logonun y konumu, menu icin baslangic y konumu
+        .w = logoW, //logonun genisligi
+        .h = logoH  //logonun yuksekligi
+    };
+    
+
+    SDL_Rect playButton = {
+        .x = (screenW / 2) - startButtonSize - 30,//ekranin ortasindan biraz sola
+        .y = logoRect.y + logoH + gap, //play ikonunun y konumu, logonun altindan 40 piksel yukari
+        .w = startButtonSize, //play ikonunun genisligi
+        .h = startButtonSize  //play ikonunun yuksekligi
+    };
+    
+    SDL_Rect settingsButton = {
+        .x = (screenW / 2) + 30, //ekranin ortasindan biraz saga
+        .y = logoRect.y + logoH + gap, //settings ikonunun y konumu, logonun altindan 40 piksel yukari
+        .w = startButtonSize, //settings ikonunun genisligi
+        .h = startButtonSize  //settings ikonunun yuksekligi
+    };
+
+    //ayarlar ekraninda ses acma kapama butonu (speaker iconu)
+    SDL_Rect speakerButton = {
+        .x = (screenW - iconSize) / 2 , //speaker ikonunun x konumu, ekranin tam ortasina yerlestir
+        .y = (screenH - iconSize) / 2, //speaker ikonunun y konumu, ekranin tam ortasina yerlestir
+        .w = iconSize, //speaker ikonunun genisligi
+        .h = iconSize  //speaker ikonunun yuksekligi
+    };
+
+    //oyun bitis ekrani (home+restart)
+    int centerOffset = 80; //home ve restart ikonlari arasindaki mesafe
+    SDL_Rect homeButton = {
+        .x = (screenW / 2) - iconSize - centerOffset, //home ikonunun x konumu, ekranin tam ortasindan home ikonunun genisligi ve centerOffset kadar sola kaydirarak yerlestir
+        .y = screenH - iconSize - 100, //home ikonunun y konumu, ekranin altindan 100 piksel yukari
+        .w = iconSize, //home ikonunun genisligi
+        .h = iconSize  //home ikonunun yuksekligi
+    };
+    SDL_Rect restartButton = {
+        .x = (screenW / 2) + centerOffset, //restart ikonunun x konumu, ekranin tam ortasindan centerOffset kadar saga kaydirarak yerlestir
+        .y = screenH - iconSize - 100, //restart ikonunun y konumu, ekranin altindan 100 piksel yukari
+        .w = iconSize, //restart ikonunun genisligi
+        .h = iconSize  //restart ikonunun yuksekligi
+    };
 
 
     Uint32 startTime = SDL_GetTicks(); //oyuna basladıgımız anı milisaniye cinsinden verir
     
-    //Butonlarin yerleri
-    SDL_Rect startButton = {
-        .x = (screenW - 200) / 2, //start butonunun x konumu
-        .y = (screenH - 60) / 2, //start butonunun y konumu
-        .w = 200, //start butonunun genisligi
-        .h = 60  //start butonunun yuksekligi
-    };
-    SDL_Rect restartButton={
-        .x = (screenW - 200) / 2, //restart butonunun x konumu
-        .y = screenH - 150, //restart butonunun y konumu, ekranin altindan 150 piksel yukari
-        .w = 200, //restart butonunun genisligi
-        .h = 60   //restart butonunun yuksekligi
-    };
+ 
 
 
     while (isRunning)
@@ -213,14 +270,16 @@ int main(int argc, char *argv[])
 
                 //durum 0:Giris ekrani
                 if(gameMode == 0) {
-                    if(mouseX >= startButton.x && mouseX <= startButton.x + startButton.w &&
-                        mouseY >= startButton.y && mouseY <= startButton.y + startButton.h) {
-                        //tiklanan x kutunun sol kenarından buyuk ve sag kenarindan kucuk
-                        //tiklanan y kutunun ust kenarindan buyuk ve alt kenarindan kucukse
-                        //start butonuna tiklandi, oyunu baslat
+                    //play butonuna tiklanmis mi kontrolu
+                    if(IsMouseClicked(mouseX, mouseY, playButton)) {
                         gameMode = 1; //oyun moduna gectik, artik kartlar ekranda olacak ve tiklanabilir olacaklar
-                        startTime = SDL_GetTicks(); //oyunu baslattigimiz anin zamanini kaydedelim, bu zamani oyun sure hesaplamak icin kullanacagiz
+                        startTime = SDL_GetTicks(); //oyuna basladigimiz zamani kaydettik, bu zamani oyun sure hesaplamak icin kullanacagiz
                         printf("Oyun baslatildi!\n");
+                    }
+                    //settings butonuna tiklanmis mi kontrolu
+                    else if(IsMouseClicked(mouseX, mouseY, settingsButton)) {
+                        gameMode = 2; //ayarlar moduna gectik, artik speaker iconu ekranda olacak ve tiklanabilir olacak
+                        
                     }
                }
 
@@ -256,6 +315,41 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
+
+                //oyun bittiginde home butonuna tiklanmis mi kontrolu
+                else if(gameMode == 1 && game.isGameOver == 1){
+                    if(IsMouseClicked(mouseX,mouseY, homeButton)){
+                        gameMode = 0; //giris ekranina donduk, artik kartlar ekranda olmayacak ve tiklanamaz olacaklar
+                        initGame(&game); //oyunu baslatan fonksiyonu tekrar cagirarak oyunu sifirla
+                    }
+                    //restart butonuna tiklanmis mi kontrolu, oyun bittikten sonra restart butonu aktif olur
+                    else if(IsMouseClicked(mouseX,mouseY, restartButton)){
+                        gameMode = 1; //tekrar oyun modunda
+                        initGame(&game); //oyunu baslatan fonksiyonu tekrar cagirarak oyunu sifirla
+                        startTime = SDL_GetTicks(); //yeni bir oyun baslattigimiz icin zamani sifirla
+                    }
+                }
+                //ayarlar ekrani tiklamalari
+                else if(gameMode == 2) {
+                    //ayarlar ekranindayken speaker butonuna tiklanmis mi kontrolu
+                    if(IsMouseClicked(mouseX, mouseY, speakerButton)) {
+                        soundEffectEnabled = !soundEffectEnabled; //ses efektlerini ac/kapa
+                        if(soundEffectEnabled) {
+                            Mix_VolumeChunk( flipSound, MIX_MAX_VOLUME ); //flip ses efektinin sesini maksimum yap
+                            Mix_VolumeChunk( matchSound, MIX_MAX_VOLUME ); //match ses efektinin sesini maksimum yap
+                        }
+                        else {
+                            Mix_VolumeChunk( flipSound, 0 ); //flip ses efektinin sesini sifirla
+                            Mix_VolumeChunk( matchSound, 0 ); //match ses efektinin sesini sifirla
+                            
+                        }
+                    }
+                    if(IsMouseClicked(mouseX, mouseY, settingsButton)) {
+                        printf("Ana menuye donuluyor...\n");
+                        gameMode = 0; //ayarlar ekranindan cikip giris ekranina donduk
+                    }
+
+                }
                 //durum 2: Oyun bitti, restart butonu tiklanabilir
                 else if(game.isGameOver == 1) {
                     if(mouseX >= restartButton.x && mouseX <= restartButton.x + restartButton.w &&
@@ -276,35 +370,30 @@ int main(int argc, char *argv[])
         } //SDL_PollEvent(&event) ile eventleri kontrol ederiz
     
         
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // rgba degeriyle rengimiz siyah ve tam opak 
-        SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor() ile belirlenen renk ile doldurur
-
+       
         if(gameMode == 0) {
             //giris ekranini cizdir
-            SDL_SetRenderDrawColor(renderer, 50, 50, 150, 255); // Koyu mavi arkaplan
+            SDL_SetRenderDrawColor(renderer,236, 155, 215, 255); //giris ekraninin arka plan rengi acik pembe
             SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor() ile belirlenen renk ile doldurur
-            
-            //basla butonu
-            SDL_SetRenderDrawColor(renderer, 0 ,200, 0 ,255); // Yesil renk
-            SDL_RenderFillRect(renderer, &startButton); //start butonunu cizdir
 
-            //start butonu yazisi
-            SDL_Color white={255, 255, 255}; 
-            SDL_Surface* textSurface = TTF_RenderText_Solid(font, "Oyunu Baslat", white); //buton yazisini bir surface'e renderlar
-            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); //surface'i texture'a cevirir
-            SDL_Rect textRect;
-            textRect.x = startButton.x + (startButton.w - textSurface->w) / 2; //butonun tam ortasina yaziyi yerlestir
-            textRect.y = startButton.y + (startButton.h - textSurface->h) / 2; //butonun tam ortasina yaziyi yerlestir
-            textRect.w = textSurface->w; //yazinin genisligi
-            textRect.h = textSurface->h; //yazinin yuksekligi
-            SDL_RenderCopy(renderer, textTexture, NULL, &textRect); //buton yazisini ekrana cizdirir
-            SDL_FreeSurface(textSurface); //surface'i serbest birakiyoruz cunku artik texture
-            SDL_DestroyTexture(textTexture); //text texture'ini yok ediyoruz cunku her dongude yeniden olusturuluyor
+            if(logoTexture != NULL) {
+                SDL_RenderCopy(renderer, logoTexture, NULL, &logoRect); //logoyu ekrana cizdirir
+            }
+
+            if(playTexture != NULL) {
+                SDL_RenderCopy(renderer, playTexture, NULL, &playButton); //play ikonunu ekrana cizdirir
+            }
+
+            if(settingsTexture != NULL) {
+                SDL_RenderCopy(renderer, settingsTexture, NULL, &settingsButton); //settings ikonunu ekrana cizdirir
+            }
 
         }
-        
-
-        else{
+    
+        else if(gameMode == 1){
+            //oyun ekrani ve bitis ekrani cizimi
+            SDL_SetRenderDrawColor(renderer,240, 250, 240, 255); //oyun ekraninin arka plan rengi acik yesil
+            SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor()
 
             for (int r = 0; r < ROWS; r++) {
                 for (int c = 0; c < COLS; c++) {
@@ -338,7 +427,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-            
+
             if(font != NULL){
                 char timeText[100];
 
@@ -353,7 +442,7 @@ int main(int argc, char *argv[])
                     snprintf(timeText, sizeof(timeText), "Kalan Sure: %d saniye | Hamle: %d | Eslesen Ciftler: %d", game.timeRemaining, game.moves, game.matchedPairs);
                 }
 
-                SDL_Color textColor = {255, 255, 255}; // Beyaz renk
+                SDL_Color textColor = {50,50,50}; // koyu gri renk
                 SDL_Surface* textSurface = TTF_RenderText_Solid(font, timeText, textColor); //yaziyi bir surface'e renderlar
                 SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); //surface'i texture'a cevirir
 
@@ -367,34 +456,45 @@ int main(int argc, char *argv[])
                 SDL_FreeSurface(textSurface); //surface'i serbest birakiyoruz cunku artik texture olarak kullanacagiz
                 SDL_DestroyTexture(textTexture); //text texture'ini yok ediyoruz cunku her dongude yeniden olusturuluyor
             }
-        
+
             if(game.isGameOver == 1) {
-                //oyun bittiginde restart butonunu cizdir
-
-                SDL_SetRenderDrawColor(renderer, 50, 200, 50, 255); // Yesil renk
-                SDL_RenderFillRect(renderer, &restartButton); //restart butonunu cizdir
-            
-                if(font !=NULL){
-                    SDL_Color buttonTextColor = {255, 255, 255}; // Beyaz renk
-                    SDL_Surface* buttonTextSurface = TTF_RenderText_Solid(font, "Yeniden Baslat", buttonTextColor); //buton yazisini bir surface'e renderlar
-             
-                    if(buttonTextSurface != NULL) {
-                        SDL_Texture* buttonTextTexture = SDL_CreateTextureFromSurface(renderer, buttonTextSurface); //surface'i texture'a cevirir
-
-                        SDL_Rect buttonTextRect;
-                        buttonTextRect.x = restartButton.x + (restartButton.w - buttonTextSurface->w) / 2; //butonun tam ortasina yaziyi yerlestir
-                        buttonTextRect.y = restartButton.y + (restartButton.h - buttonTextSurface->h) / 2;
-                        buttonTextRect.w = buttonTextSurface->w;
-                        buttonTextRect.h = buttonTextSurface->h;
-
-                        SDL_RenderCopy(renderer, buttonTextTexture, NULL, &buttonTextRect); //buton yazisini ekrana cizdirir
-                        SDL_FreeSurface(buttonTextSurface); //surface'i serbest birakiyoruz cunku artik texture olarak kullanacagiz
-                        SDL_DestroyTexture(buttonTextTexture); //buton text texture'ini yok ediyoruz cunku her dongude yeniden olusturuluyor
-                    }
+                //oyun bittiginde home ve restart ikonlarini cizdir
+                if(homeTexture != NULL) {
+                  SDL_SetTextureColorMod(homeTexture, 40, 40, 40); 
+                  SDL_RenderCopy(renderer, homeTexture, NULL, &homeButton);
                 }
-   
+                if(restartTexture != NULL) {
+                    SDL_SetTextureColorMod(restartTexture, 40, 40, 40); 
+                    SDL_RenderCopy(renderer, restartTexture, NULL, &restartButton);
+                }
             }
         }
+        
+
+        else if (gameMode == 2) {
+           
+            // ayarlar ekrani cizimi
+            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Gri arka plan
+            SDL_RenderClear(renderer);
+
+            // speaker ikonunu durumuna gore ciz 
+            if (speakerTexture != NULL) {
+                if (soundEffectEnabled) {
+                    SDL_SetTextureColorMod(speakerTexture, 255, 255, 255); // ses acikken speaker ikonunu normal renklerinde cizdiriyoruz
+                } else {
+                    SDL_SetTextureColorMod(speakerTexture, 255, 100, 100); // Kirmizi tonlari ekleyerek kapali oldugunu belli ediyoruz
+                }
+                SDL_RenderCopy(renderer, speakerTexture, NULL, &speakerButton);
+            }
+
+            //ayarlar ekraninda home butonu aktif olsun diye cizdiriyoruz, kullanici buradan ana menuye donebilir
+            if (homeTexture != NULL) {
+                SDL_SetTextureColorMod(homeTexture, 50, 50, 50); //home rengi koyulastirdik
+                SDL_RenderCopy(renderer, homeTexture, NULL, &settingsButton); 
+            }
+            
+        }
+
 
         SDL_RenderPresent(renderer); //render edilen her seyi ekrana gosterir
         
