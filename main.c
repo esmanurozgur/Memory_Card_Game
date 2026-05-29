@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     SDL_Texture *settingsTexture = LoadTexture("assets/settingsicon-removebg-preview.png", renderer);
     SDL_Texture *speakerTexture = LoadTexture("assets/musicicon-removebg-preview.png", renderer);
     SDL_Texture *homeTexture = LoadTexture("assets/homeicon-removebg-preview.png", renderer);
-    SDL_Texture *logoTexture = LoadTexture("assets/Blue Pink Groovy Playful Coffee Shop Logo.png", renderer);
+    SDL_Texture *logoTexture = LoadTexture("assets/anaekran.png", renderer);
     SDL_Texture *rekorTexture = LoadTexture("assets/bestscore.png", renderer);
 
     if(playTexture == NULL || restartTexture == NULL || settingsTexture == NULL || speakerTexture == NULL || homeTexture == NULL || logoTexture == NULL || rekorTexture == NULL) {
@@ -172,8 +172,8 @@ int main(int argc, char *argv[])
     int logoW = 1000, logoH = 450; //logo icin genislik ve yukseklik
     int startButtonSize = 130; //play butonu logo altinda daha buyuk gorunsun diye startButtonSize'i iconSize'dan buyuk yaptim
     int gap = 50; //logo ile butonlar arası bosluk
-    int rekorButtonSize = 100; //rekor ikonunun boyutu
-    int rekorButtonH = rekorButtonSize ; //buton yuksekligi
+    int rekorButtonW = 400; //rekor ikonu ve metni iceren butonun genisligi
+    int rekorButtonH = 100 ; //buton yuksekligi
 
 
 
@@ -203,19 +203,6 @@ int main(int argc, char *argv[])
         .h = startButtonSize  //settings ikonunun yuksekligi
     };
 
-    SDL_Rect rekorButtonTextRect = { 
-        .x = (screenW - 250) / 2, //rekor metninin x konumu, ekranin tam ortasina yerlestir
-        .y = settingsButton.y + settingsButton.h + gap, // Ayarlar butonunun altına
-        .w = 250, 
-        .h = rekorButtonH
-    };
-
-    SDL_Rect rekorButtonIconRect = {
-        .x = rekorButtonTextRect.x - rekorButtonSize - 20, //
-        .y = rekorButtonTextRect.y,
-        .w = rekorButtonSize,
-        .h = rekorButtonSize
-    };
 
     //ayarlar ekraninda ses acma kapama butonu (speaker iconu)
     SDL_Rect speakerButton = {
@@ -398,7 +385,7 @@ int main(int argc, char *argv[])
        
         if(gameMode == 0) {
             //giris ekranini cizdir
-            SDL_SetRenderDrawColor(renderer,236, 155, 215, 255); //giris ekraninin arka plan rengi acik pembe
+            SDL_SetRenderDrawColor(renderer,0,0,0,255); //giris ekraninin arka plan rengi siyah
             SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor() ile belirlenen renk ile doldurur
 
             if(logoTexture != NULL) {
@@ -412,20 +399,41 @@ int main(int argc, char *argv[])
             if(settingsTexture != NULL) {
                 SDL_RenderCopy(renderer, settingsTexture, NULL, &settingsButton); //settings ikonunu ekrana cizdirir
             }
-            if(rekorTexture != NULL) {
-                SDL_RenderCopy(renderer, rekorTexture, NULL, &rekorButtonIconRect); //rekor metnini ekrana cizdirir
-            }
+            
 
             if(font !=NULL){
                 char rekorText[100];
                 snprintf(rekorText, sizeof(rekorText), "En Iyi Rekor: %d hamle", bestMoves); //rekor metni, bestMoves degerini gosterir
-                SDL_Color textColor = {50,50,50}; // koyu gri renk
-                SDL_Surface* textSurface = TTF_RenderText_Blended(font, rekorText, textColor); //yaziyi bir surface'e renderlar
+                SDL_Color textColor = {255,255,255,255}; // beyaz renk
+                SDL_Surface* textSurface = TTF_RenderText_Solid(font, rekorText, textColor); //rekor metnini bir surface'e renderlar
                 SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); //surface'i texture'a cevirir
-                //textRect'i metnin botuyula esle
-                rekorButtonTextRect.w = textSurface->w; //rekor metninin genisligi, renderlanan metnin genisligi kadar olur
-                rekorButtonTextRect.h = textSurface->h; //rekor metninin yuksekligi, renderlanan metnin yuksekligi kadar olur
-                SDL_RenderCopy(renderer, textTexture, NULL, &rekorButtonTextRect); //rekor metnini ekrana cizdirir
+                
+                int textW = textSurface->w; //metnin genisligi
+                int textH = textSurface->h; //metnin yuksekligi
+                int iconSize= 80; //rekor ikonu ve metni iceren butonun genisligi
+                int spacing = 15; //ikon ile metin arasindaki bosluk
+
+                int totalWidth = iconSize + spacing + textW; //ikon ve metnin toplam genisligi
+                int startX = (screenW - totalWidth) / 2; //toplam genisligi kullanarak baslangic x konumunu hesapla
+                int startY = playButton.y + playButton.h + 40; //playin 40 piksel alti
+
+                SDL_Rect iconRect = {
+                    .x = startX, //rekor ikonunun x konumu
+                    .y = startY, //rekor ikonunun y konumu
+                    .w = iconSize, //rekor ikonunun genisligi
+                    .h = iconSize  //rekor ikonunun yuksekligi
+                };
+                SDL_Rect textRect = {
+                    .x = startX + iconSize + spacing, //metnin x konumu, ikonun sagina spacing kadar kaydirarak yerlestir
+                    .y = startY + (iconSize - textH) / 2, //metnin y konumu, ikon ile metni dikeyde ortalayarak yerlestir
+                    .w = textW, //metnin genisligi
+                    .h = textH  //metnin yuksekligi
+                };
+
+                if(rekorTexture != NULL) {
+                    SDL_RenderCopy(renderer, rekorTexture, NULL, &iconRect); //rekor ikonunu ekrana cizdirir
+                }
+                SDL_RenderCopy(renderer, textTexture, NULL, &textRect); //rekor metnini ekrana cizdirir
                 SDL_FreeSurface(textSurface); //surface'i serbest birakiyoruz cunku artik texture olarak kullanacagiz
                 SDL_DestroyTexture(textTexture); //text texture'ini yok ediyoruz cunku her dongude yeniden olusturuluyor
             }
@@ -433,8 +441,8 @@ int main(int argc, char *argv[])
         }
         else if(gameMode == 1){
             //oyun ekrani ve bitis ekrani cizimi
-            SDL_SetRenderDrawColor(renderer,250, 250, 245, 255); //oyun ekraninin arka plan rengi acik krem
-            SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor()
+            SDL_SetRenderDrawColor(renderer,0,0,0,255); //oyun ekraninin arka plan rengi siyah
+            SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor()la doldurur
 
             for (int r = 0; r < ROWS; r++) {
                 for (int c = 0; c < COLS; c++) {
@@ -489,7 +497,7 @@ int main(int argc, char *argv[])
                     snprintf(timeText, sizeof(timeText), "Kalan Sure: %d saniye | Hamle: %d | Eslesen Ciftler: %d", game.timeRemaining, game.moves, game.matchedPairs);
                 }
 
-                SDL_Color textColor = {50,50,50}; // koyu gri renk
+                SDL_Color textColor = {255,255,255,255}; // beyaz renk
                 SDL_Surface* textSurface = TTF_RenderText_Solid(font, timeText, textColor); //yaziyi bir surface'e renderlar
                 SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); //surface'i texture'a cevirir
 
@@ -507,11 +515,11 @@ int main(int argc, char *argv[])
             if(game.isGameOver == 1) {
                 //oyun bittiginde home ve restart ikonlarini cizdir
                 if(homeTexture != NULL) {
-                  SDL_SetTextureColorMod(homeTexture, 40, 40, 40); 
+                  SDL_SetTextureColorMod(homeTexture, 236, 155, 215); 
                   SDL_RenderCopy(renderer, homeTexture, NULL, &homeButton);
                 }
                 if(restartTexture != NULL) {
-                    SDL_SetTextureColorMod(restartTexture, 40, 40, 40); 
+                    SDL_SetTextureColorMod(restartTexture, 236, 155, 215); 
                     SDL_RenderCopy(renderer, restartTexture, NULL, &restartButton);
                 }
             }
@@ -536,7 +544,7 @@ int main(int argc, char *argv[])
 
             //ayarlar ekraninda home butonu aktif olsun diye cizdiriyoruz, kullanici buradan ana menuye donebilir
             if (homeTexture != NULL) {
-                SDL_SetTextureColorMod(homeTexture, 50, 50, 50); //home rengi koyulastirdik
+                SDL_SetTextureColorMod(homeTexture, 236, 155, 215); //home rengi koyulastirdik
                 SDL_RenderCopy(renderer, homeTexture, NULL, &settingsButton); 
             }
             
