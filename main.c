@@ -143,7 +143,13 @@ int main(int argc, char *argv[])
     int soundEffectEnabled = 1; //ses efektlerinin acik olup olmadigini kontrol eder, 1acik 0 kapali
     int isRunning = 1; //oyunun calismaya devam edip etmeyecegni kontrol eden yapidir, 1 ise calisiyor, 0 ise duracak
     SDL_Event event; // klavye, fare veya pencere olaylarini (event) tutar
-
+ 
+    int bestMoves = 999; //en iyi hamle sayisi, baslangicta yuksek bir deger verilir ki ilk oyunda guncellensin
+    FILE *scoreFile = fopen("bestscore.txt", "r");
+    if(scoreFile != NULL) {
+        fscanf(scoreFile, "%d", &bestMoves); //bestMoves degerini dosyadan oku
+        fclose(scoreFile);
+    }
 
     SDL_GetWindowSize(window, &screenW, &screenH); //pencerenin genisligini ve yuksekligini alir, bu degerleri screenW ve screenH degiskenlerine atar
     int cardWidth = 100;  // Kart genisligi
@@ -429,11 +435,17 @@ int main(int argc, char *argv[])
             }
 
             if(font != NULL){
-                char timeText[100];
+                char timeText[150];
 
                 if(game.matchedPairs == 8) {
                     game.isGameOver = 1; //tum kartlar eslesmis, oyun bitmis
-                    snprintf(timeText, sizeof(timeText), "Tebrikler! Tum kartlari eslestirdiniz. Kalan sure: %d saniye", game.timeRemaining);
+                    if(game.moves <= bestMoves){
+                        snprintf(timeText, sizeof(timeText), "Yeni Rekor! %d hamlede bitirdiniz. | Kalan sure: %d sn",game.moves, game.timeRemaining);
+                    }
+                    else{
+                        snprintf(timeText, sizeof(timeText), "Tebrikler! Tum kartlari eslestirdiniz. | Kalan sure: %d sn", game.timeRemaining);
+                    }
+                
                 }
                 else if(game.timeRemaining <= 0) {
                     snprintf(timeText, sizeof(timeText), "SURE BITTI! Eslesen kart ciftleri: %d", game.matchedPairs);
@@ -511,6 +523,14 @@ int main(int argc, char *argv[])
                
                 if(game.matchedPairs == 8) {
                     game.isGameOver = 1; //tum kartlar eslesmis, oyun bitmis
+                    if(game.moves < bestMoves){
+                        bestMoves = game.moves; //yeni rekoru kaydet
+                        FILE *scoreFile = fopen("bestscore.txt", "w"); 
+                        if(scoreFile != NULL) {
+                            fprintf(scoreFile, "%d", bestMoves); //bestMoves degerini dosyaya yaz
+                            fclose(scoreFile); 
+                        }
+                    }
                     printf("Tebrikler! Tum kartlari eslestirdiniz. Kalan sure: %d saniye\n", game.timeRemaining);
                 }
 
