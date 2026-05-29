@@ -133,8 +133,9 @@ int main(int argc, char *argv[])
     SDL_Texture *speakerTexture = LoadTexture("assets/musicicon-removebg-preview.png", renderer);
     SDL_Texture *homeTexture = LoadTexture("assets/homeicon-removebg-preview.png", renderer);
     SDL_Texture *logoTexture = LoadTexture("assets/Blue Pink Groovy Playful Coffee Shop Logo.png", renderer);
+    SDL_Texture *rekorTexture = LoadTexture("assets/bestscore.png", renderer);
 
-    if(playTexture == NULL || restartTexture == NULL || settingsTexture == NULL || speakerTexture == NULL || homeTexture == NULL || logoTexture == NULL) {
+    if(playTexture == NULL || restartTexture == NULL || settingsTexture == NULL || speakerTexture == NULL || homeTexture == NULL || logoTexture == NULL || rekorTexture == NULL) {
         printf("Bazi ikonlar yuklenemedi! Hata: %s\n", IMG_GetError());
         // Yuklenemeyen ikonlar icin hata mesajı yazdirilir, ancak oyunun geri kalani icin devam edilir
     }
@@ -168,11 +169,15 @@ int main(int argc, char *argv[])
     int iconSize =100; //play,home ve restart icin buyuk ikonlar
     int uiIconSize = 60; //settings ve speaker icin kucuk ikonlar
 
-    int logoW = 800, logoH = 300; //logo icin genislik ve yukseklik
+    int logoW = 1000, logoH = 450; //logo icin genislik ve yukseklik
     int startButtonSize = 130; //play butonu logo altinda daha buyuk gorunsun diye startButtonSize'i iconSize'dan buyuk yaptim
-    int gap = 40; //logo ile butonlar arası bosluk
+    int gap = 50; //logo ile butonlar arası bosluk
+    int rekorButtonSize = 100; //rekor ikonunun boyutu
+    int rekorButtonH = rekorButtonSize ; //buton yuksekligi
 
-    int totalMenuHeight = logoH + gap + startButtonSize; //logo ve butonlarin toplam yuksekligi
+
+
+    int totalMenuHeight = logoH + 2*gap + startButtonSize + rekorButtonH;
     int menuStartY = (screenH - totalMenuHeight) / 2; //menu icin baslangic y konumu, menu ekranin tam ortasina yerlestirilir
 
     //giris ekrani (logo+play+settings)
@@ -196,6 +201,20 @@ int main(int argc, char *argv[])
         .y = logoRect.y + logoH + gap, //settings ikonunun y konumu, logonun altindan 40 piksel yukari
         .w = startButtonSize, //settings ikonunun genisligi
         .h = startButtonSize  //settings ikonunun yuksekligi
+    };
+
+    SDL_Rect rekorButtonTextRect = { 
+        .x = (screenW - 250) / 2, //rekor metninin x konumu, ekranin tam ortasina yerlestir
+        .y = settingsButton.y + settingsButton.h + gap, // Ayarlar butonunun altına
+        .w = 250, 
+        .h = rekorButtonH
+    };
+
+    SDL_Rect rekorButtonIconRect = {
+        .x = rekorButtonTextRect.x - rekorButtonSize - 20, //
+        .y = rekorButtonTextRect.y,
+        .w = rekorButtonSize,
+        .h = rekorButtonSize
     };
 
     //ayarlar ekraninda ses acma kapama butonu (speaker iconu)
@@ -393,12 +412,28 @@ int main(int argc, char *argv[])
             if(settingsTexture != NULL) {
                 SDL_RenderCopy(renderer, settingsTexture, NULL, &settingsButton); //settings ikonunu ekrana cizdirir
             }
+            if(rekorTexture != NULL) {
+                SDL_RenderCopy(renderer, rekorTexture, NULL, &rekorButtonIconRect); //rekor metnini ekrana cizdirir
+            }
+
+            if(font !=NULL){
+                char rekorText[100];
+                snprintf(rekorText, sizeof(rekorText), "En Iyi Rekor: %d hamle", bestMoves); //rekor metni, bestMoves degerini gosterir
+                SDL_Color textColor = {50,50,50}; // koyu gri renk
+                SDL_Surface* textSurface = TTF_RenderText_Blended(font, rekorText, textColor); //yaziyi bir surface'e renderlar
+                SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface); //surface'i texture'a cevirir
+                //textRect'i metnin botuyula esle
+                rekorButtonTextRect.w = textSurface->w; //rekor metninin genisligi, renderlanan metnin genisligi kadar olur
+                rekorButtonTextRect.h = textSurface->h; //rekor metninin yuksekligi, renderlanan metnin yuksekligi kadar olur
+                SDL_RenderCopy(renderer, textTexture, NULL, &rekorButtonTextRect); //rekor metnini ekrana cizdirir
+                SDL_FreeSurface(textSurface); //surface'i serbest birakiyoruz cunku artik texture olarak kullanacagiz
+                SDL_DestroyTexture(textTexture); //text texture'ini yok ediyoruz cunku her dongude yeniden olusturuluyor
+            }
 
         }
-    
         else if(gameMode == 1){
             //oyun ekrani ve bitis ekrani cizimi
-            SDL_SetRenderDrawColor(renderer,240, 250, 240, 255); //oyun ekraninin arka plan rengi acik yesil
+            SDL_SetRenderDrawColor(renderer,250, 250, 245, 255); //oyun ekraninin arka plan rengi acik krem
             SDL_RenderClear(renderer); //renderirin tamamini temizler ve setRenderDrawColor()
 
             for (int r = 0; r < ROWS; r++) {
@@ -443,7 +478,7 @@ int main(int argc, char *argv[])
                         snprintf(timeText, sizeof(timeText), "Yeni Rekor! %d hamlede bitirdiniz. | Kalan sure: %d sn",game.moves, game.timeRemaining);
                     }
                     else{
-                        snprintf(timeText, sizeof(timeText), "Tebrikler! Tum kartlari eslestirdiniz. | Kalan sure: %d sn", game.timeRemaining);
+                        snprintf(timeText, sizeof(timeText), "Tebrikler! %d hamle yaptiniz. (En iyi rekor: %d ) | Kalan sure: %d sn", game.moves, bestMoves, game.timeRemaining);
                     }
                 
                 }
@@ -520,9 +555,11 @@ int main(int argc, char *argv[])
                 game.board[game.firstRow][game.firstCol].state = 2; //eslesen kartlar eslesmis olarak isaretlenir
                 game.board[game.secondRow][game.secondCol].state = 2;
                 game.matchedPairs++; //eslesen cift sayisini arttir
+                printf("Eslesen kartlar: %d\n",game.matchedPairs);
                
                 if(game.matchedPairs == 8) {
                     game.isGameOver = 1; //tum kartlar eslesmis, oyun bitmis
+
                     if(game.moves < bestMoves){
                         bestMoves = game.moves; //yeni rekoru kaydet
                         FILE *scoreFile = fopen("bestscore.txt", "w"); 
@@ -534,25 +571,24 @@ int main(int argc, char *argv[])
                     printf("Tebrikler! Tum kartlari eslestirdiniz. Kalan sure: %d saniye\n", game.timeRemaining);
                 }
 
-                printf("Eslesen kartlar: %d\n", game.matchedPairs);
             }
-                else {
-                    //kartlar eslesmemis, tekrar kapatilir
-                    game.board[game.firstRow][game.firstCol].state = 0;
-                    game.board[game.secondRow][game.secondCol].state = 0;
-                    Mix_PlayChannel(-1, wrongSound, 0); //eslesmeme sesi oynatilir
-                    printf("Kartlar eslesmedi. Tekrar deneyin.\n");
-                }
-
-                game.flippedCount = 0; //acik kart sayisini sifirla, kullanici yeni kartlar acabilir
-
-                while (SDL_PollEvent(&event)) {
-                    if (event.type == SDL_QUIT) {
-                        isRunning = 0; //kullanici pencereyi kapatmak isterse oyun dongusunu kir
-                    }
-                }
+            else {
+                //kartlar eslesmemis, tekrar kapatilir
+                game.board[game.firstRow][game.firstCol].state = 0;
+                game.board[game.secondRow][game.secondCol].state = 0;
+                Mix_PlayChannel(-1, wrongSound, 0); //eslesmeme sesi oynatilir
+                printf("Kartlar eslesmedi. Tekrar deneyin.\n");
             }
 
+            game.flippedCount = 0; //acik kart sayisini sifirla, kullanici yeni kartlar acabilir
+
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+                    isRunning = 0; //kullanici pencereyi kapatmak isterse oyun dongusunu kir
+                }
+            }
+            
+        }
       
 
     } // Oyun dongusu burada bitiyor, kullanici pencereyi kapatana kadar kartlar ekranda kalacak
